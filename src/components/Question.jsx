@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import ajax from "superagent";
+import he from "he";
 import { useNavigate } from "react-router-dom";
 
-export default function Question({ questionParams, updateScore }) {
+export default function Question({ questionParams, updateScore, updateTime }) {
   const navigate = useNavigate();
 
   const questionsAPI = process.env.REACT_APP_QUESTIONS_API;
@@ -13,6 +14,8 @@ export default function Question({ questionParams, updateScore }) {
   const [loading, setLoading] = useState(true);
   const [answer, setAnswer] = useState("");
   const [score, setScore] = useState(0);
+  const [seconds, setSeconds] = useState(0);
+  const [minutes, setMinutes] = useState(0);
   const [optionSelected, setOptionSelected] = useState(false);
 
   const updateNext = () => {
@@ -20,6 +23,8 @@ export default function Question({ questionParams, updateScore }) {
     setOptions([]);
     if (!isLastQuestion()) {
       updateScore(score);
+      updateTime(`${("0" + minutes).slice(-2)}:
+      ${("0" + seconds).slice(-2)}`);
       navigate("/result");
     }
 
@@ -33,31 +38,36 @@ export default function Question({ questionParams, updateScore }) {
       alert("Already selected an answer");
       return;
     }
-    if (e.target.outerText === answer) setScore(score + 1);
+
+    if (e.target.attributes.value.nodeValue === answer) setScore(score + 1);
     setOptionSelected(true);
   };
+
+  const e = setInterval(() => {
+    if (seconds === 59) {
+      setMinutes(minutes + 1);
+      setSeconds(0);
+    } else setSeconds(seconds + 1);
+    clearInterval(e);
+  }, 1000);
 
   const generateRandom = (min, max) =>
     Math.floor(Math.random() * (max - min + 1)) + min;
 
   const fillOptions = result => {
-    if (questionParams.type === "boolean") {
-      setOptions([...options, "True", "False"]);
-      return;
-    }
-
     let temp = [];
 
-    const ind = generateRandom(0, 3);
+    const ind = generateRandom(0, result.incorrect_answers.length);
     // eslint-disable-next-line array-callback-return
     result.incorrect_answers.map((value, index) => {
       if (index === ind) {
-        temp.push(result.correct_answer);
+        temp.push(he.decode(result.correct_answer));
       }
-      temp.push(value);
+      temp.push(he.decode(value));
     });
 
-    if (temp.length === 3) temp.push(result.correct_answer);
+    if (temp.length === 3 || temp.length === 1)
+      temp.push(he.decode(result.correct_answer));
     setOptions(temp);
   };
 
@@ -74,8 +84,8 @@ export default function Question({ questionParams, updateScore }) {
         let result = res.body.results[0];
 
         setOptionSelected(false);
-        setQuestion(result.question);
-        setAnswer(result.correct_answer);
+        setQuestion(he.decode(result.question));
+        setAnswer(he.decode(result.correct_answer));
         fillOptions(result);
         setLoading(false);
       });
@@ -87,25 +97,51 @@ export default function Question({ questionParams, updateScore }) {
       {loading ? (
         <div>Loading...</div>
       ) : (
-        <>
-          <div>Score: {score}</div>
-          <div>
-            Question {questionNumer} of {questionParams.amount}
-          </div>
-          <div>{question}</div>
-          {options.map((option, index) => (
-            <div
-              key={index}
-              value={option}
-              onClick={e => validateRightAnswer(e)}
-            >
-              {option}
+        <div className="question-content">
+          <div className="top-div">
+            <div>Question {questionNumer}</div>
+            <div>
+              Time taken: {("0" + minutes).slice(-2)}:
+              {("0" + seconds).slice(-2)}
             </div>
-          ))}
-          <button onClick={() => updateNext()}>
-            {isLastQuestion() ? "Next" : "End Quiz"}
-          </button>
-        </>
+            <div>Score: {score}</div>
+          </div>
+          <div className="question-div">
+            <div className="question-text">Q. {question}</div>
+            <ul className="list-group options-div">
+              {options.map((option, index) => (
+                <li
+                  className={`list-group-item option-div ${
+                    optionSelected
+                      ? option === answer
+                        ? "right-answer"
+                        : "wrong-answer"
+                      : ""
+                  }`}
+                  key={index}
+                  value={option}
+                  onClick={e => validateRightAnswer(e)}
+                >
+                  {index + 1}. {option}{" "}
+                  {optionSelected ? (
+                    option === answer ? (
+                      <i className="bi bi-check-circle"></i>
+                    ) : (
+                      ""
+                    )
+                  ) : (
+                    ""
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="button-div">
+            <button className="btn btn-primary" onClick={() => updateNext()}>
+              {isLastQuestion() ? "Next" : "End Quiz"}
+            </button>
+          </div>
+        </div>
       )}
     </>
   );

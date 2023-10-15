@@ -25,6 +25,7 @@ export default function Home({ setQuizParams }) {
       alert("Please Select number of questions between 5 & 20");
       return;
     }
+
     setQuizParams(
       {
         amount: countRef.current.value,
@@ -44,13 +45,19 @@ export default function Home({ setQuizParams }) {
         type="number"
         name="amount"
         id="question-count"
+        className="input-select"
         ref={countRef}
         min={5}
         max={20}
         defaultValue={5}
       />
       <br />
-      <select name="category" id="category" ref={categoryRef}>
+      <select
+        name="category"
+        id="category"
+        className="input-select"
+        ref={categoryRef}
+      >
         {categories.map((category, index) => (
           <option key={index} value={category.id}>
             {category.name}
@@ -58,18 +65,23 @@ export default function Home({ setQuizParams }) {
         ))}
       </select>
       <br />
-      <select name="difficulty" id="difficulty" ref={difficultyRef}>
+      <select
+        name="difficulty"
+        id="difficulty"
+        className="input-select"
+        ref={difficultyRef}
+      >
         <option value="easy">Basic</option>
         <option value="medium">Moderate</option>
         <option value="hard">Difficult</option>
       </select>
       <br />
-      <select name="type" id="type" ref={typeRef}>
-        <option value="boolean">True/False</option>
+      <select name="type" id="type" className="input-select" ref={typeRef}>
         <option value="multiple">Multiple Choice</option>
+        <option value="boolean">True/False</option>
       </select>
-
-      <button type="submit" onClick={handleSubmit}>
+      <br />
+      <button className="btn btn-primary" type="submit" onClick={handleSubmit}>
         Start Quiz
       </button>
     </>
